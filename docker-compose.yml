@@ -1,24 +1,119 @@
 version: '3'
 services:
-  gateway:
-    build: ./nginx
+  #gateway:
+  #  build: ./nginx
+  #  ports:
+  #    - "8888:80"
+  #  depends_on:
+  #    - admin
+  #    - ui
+
+####
+# Application Layer - Ports 887X
+####
+
+  admin:
+    command: gunicorn soundbin_admin.wsgi:application --bind 0.0.0.0:8000 
+    build: ../soundbin_admin
+    expose:
+      - "8000"
     ports:
-      - "8888:80"
-    depends_on:
-      - admin
-      - ui
+      - "8871:8000"
+    environment:
+      - SECRET_KEY=please_change_me
 
   ui:
-    image: wesjordan/soundbin-frontend:latest
-    expose:
-      - 80
+    build: ../artist-frontend
+    ports:
+      - "8872:80"
     depends_on:
       - admin
   
-  admin:
-    command: gunicorn soundbin_admin.wsgi:application --bind 0.0.0.0:8000 
-    image: wesjordan/soundbin-admin:dev
+####
+# Blockchain Layer - Ports 888X
+####
+
+  demux:
+    build:
+      context: ../demux
+      dockerfile: Dockerfile.demux
     expose:
-      - 8000
+      - "8282"
+    ports:
+      - "8881:8282"
+    depends_on:
+      - admin
+      - postgres
+      - mongo
+      - nodeos_mirror
     environment:
-      - SECRET_KEY=please_change_me
+      MONGO_HOST: "mongo.docker.local"
+      MONGO_UNAME: "eosio"
+      MONGO_PASS: "blockchain"
+      MONGO_PORT: "27017"
+      MONGO_DBNAME: "EOS"
+      POSTGRES_HOST: "postgres"
+      POSTGRES_UNAME: "eosio"
+      POSTGRES_PASS: "blockchain"
+      POSTGRES_PORT: "5432"
+      POSTGRES_DBNAME: "postgres"
+
+  nodeos:
+    build: ../blockchain_backend
+    command: "/nodeos.sh"
+    expose:
+      - "8888" # RPC Endpoint
+      - "9876" # P2P Endpoint
+      - "5000" # Control Endpoint
+    ports:
+      - "8882:5000"
+
+  nodeos_mirror:
+    build: ../blockchain_backend
+    command: "/nodeos_mirror.sh"
+    environment:
+      PEER_HOST: "nodeos:9876"
+      MONGO_URI: "mongo:27017"
+      MONGO_UNAME: "eosio"
+      MONGO_PASS: "blockchain"
+      HTTP_PORT: "8888"
+    expose:
+      - "8888"
+      - "9877"
+    ports:
+      - "8883:8888"
+    depends_on:
+      - nodeos
+      - mongo
+
+####
+# Storage Layer - Ports 889X
+####
+
+  postgres:
+    build:
+      context: ../demux
+      dockerfile: Dockerfile.db
+    expose:
+      - "5432"
+    ports:
+      - "8891:5432"
+
+  mongo:
+    image: mongo:4.1-bionic
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "eosio"
+      MONGO_INITDB_ROOT_PASSWORD: "blockchain"
+      MONGO_INITDB_DATABASE: "EOS"
+    expose:
+      - "27017"
+      - "27317"
+    ports:
+      - "8892:27017"
+    networks:
+      default:
+        aliases:
+          - mongo.docker.local
+
+      #mongodb://eosio:blockchain@mongo:27017
+      #mongodb://eosio:blockchain@mongo:27017
