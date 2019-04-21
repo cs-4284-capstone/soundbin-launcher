@@ -1,3 +1,5 @@
+### This is a SAMPLE docker-compose file. in order to get everything working, you need to copy this file and fill in the secret variable names.
+
 version: '3'
 services:
   #gateway:
@@ -13,14 +15,18 @@ services:
 ####
 
   admin:
-    command: gunicorn soundbin_admin.wsgi:application --bind 0.0.0.0:8000 
+    #command: gunicorn soundbin_admin.wsgi:application --bind 0.0.0.0:8000 # for prod
+    command: ./manage.py runserver 0.0.0.0:8000 # for development
     build: ../soundbin_admin
     expose:
       - "8000"
     ports:
       - "8871:8000"
     environment:
-      - SECRET_KEY=please_change_me
+      SECRET_KEY: <CHANGE ME>
+      EMAIL_SRC_EMAIL: <CHANGE ME>
+      EMAIL_PASSWORD: <CHANGE ME>
+      EMAIL_HOST: smtp.gmail.com
 
   ui:
     build: ../artist-frontend
