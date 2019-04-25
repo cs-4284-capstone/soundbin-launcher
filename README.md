@@ -14,6 +14,7 @@ You will also need to clone the following repositories into sibling directories:
 * demux
 * blockchain_backend (Smart contracts and Nodeos management tools)
 
+You will also need to copy your *EOS private key* to a file called "key.txt". Place it inside the `blockchain_backend` folder.
 Finally, you'll need to rename `docker-compose.sample.yml` to `docker-compose.yml` and fill in the secrets labeled `<CHANGE ME>`.
 
 ## Running the system:
